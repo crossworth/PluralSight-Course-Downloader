@@ -37,6 +37,8 @@ class PluralSight {
     private $courses;
     private $session;
 
+    private $defaultPath;
+
     public function __construct($config) {
         $this->config = $config;    
     }
@@ -47,6 +49,7 @@ class PluralSight {
 
         $this->CreateFolder($this->config['download_folder']);
         chdir($this->config['download_folder']);
+        $this->defaultPath = getcwd();
 
         $this->InitSession();
 
@@ -153,17 +156,14 @@ class PluralSight {
 
                 $timeStart = time();
 
-                $fileDownloaded = $this->DownloadURL($url, $clipTitle);
+                $this->DownloadURL($url, $clipTitle);
 
-                if (!$fileDownloaded) {
-                    $sleepTime = $this->GetSleepTime($duration, $timeStart);
+                $sleepTime = $this->GetSleepTime($duration, $timeStart);
 
-                    if ($sleepTime > 0) {
-                        printf("\tSleeping for %d seconds\n", $sleepTime);
-                        sleep($sleepTime);
-                    }
+                if ($sleepTime > 0) {
+                    printf("\tSleeping for %d seconds\n", $sleepTime);
+                    sleep($sleepTime);
                 }
-                
             }
 
             $courseDescription .= "\n";
@@ -176,8 +176,7 @@ class PluralSight {
         $sleepTimeModule = $this->GetSleepTime();
         printf("Sleeping for %d seconds\n\n", $sleepTimeModule);
         sleep($sleepTimeModule);
-        chdir('../'); // get out of course folder
-
+        chdir($this->defaultPath);
     }
 
     private function GetSleepTime($clipDuration = 0, $startTime = 0) {
@@ -258,7 +257,9 @@ class PluralSight {
 
             $downloadLink = $result->body;
 
-            if ($downloadLink == "Bad Request") {
+            if ($i + 1 == self::MAX_GET_TRIES && downloadLink == "Bad Request") {
+                die("Error 403: Your account probably was blocked.\n");
+            } elseif ($downloadLink == "Bad Request") {
                 printf("\tError, could not get the download link, trying to get another resolution/format in 5 seconds.\n");
 
                 if ($i > 3) {
@@ -288,9 +289,16 @@ class PluralSight {
 
         $clipTitle = $this->ConvertNameForWindows($clipTitle);
 
-        if (!file_exists($clipTitle . "." . $formats[$currentFormat])) {
+        if (!file_exists($clipTitle . "." . $formats[$currentFormat]) && filesize($clipTitle . "." . $formats[$currentFormat]) > 0) {
             echo "\tDownloading file: " . $clipTitle . " \n";
-            file_put_contents($clipTitle . "." . $formats[$currentFormat], fopen($downloadLink, 'r'));
+            $data = fopen($downloadLink, 'r');
+
+            if ($data) {
+                file_put_contents($clipTitle . "." . $formats[$currentFormat], $data);
+            } else {
+                echo "\tError downloading: " . $clipTitle . " \n";    
+            }
+
             return false;
         } else {
             echo "\tSkipping: " . $clipTitle . " file already exists.\n";
