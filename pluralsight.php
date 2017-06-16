@@ -253,7 +253,6 @@ class PluralSight {
             $result = $this->session->post('/training/Player/ViewClip');
 
             $downloadLink = $result->body;
-	#	printf("%s",$downloadLink);
             if ($i + 1 == self::MAX_GET_TRIES && downloadLink == "Bad Request") {
                 die("Error 403: Your account probably was blocked.\n");
             } elseif ($downloadLink == "Bad Request") {
@@ -286,7 +285,6 @@ class PluralSight {
 
         $clipTitle = $this->ConvertNameForWindows($clipTitle);
 
-        #if (!file_exists($clipTitle . "." . $formats[$currentFormat]) && filesize($clipTitle . "." . $formats[$currentFormat]) > 0) {
         if (!file_exists($clipTitle . "." . $formats[$currentFormat])) {
             echo "\tDownloading file: " . $clipTitle . " \n";
             $data = fopen($downloadLink, 'r');
@@ -305,7 +303,6 @@ class PluralSight {
 
     private function GetCourseContent($courseID) {
         $result = $this->session->get(self::CONTENT_DATA_URL . $courseID);
-	#var_dump($result->body);
         $result = json_decode($result->body);
         return $result;
     }
