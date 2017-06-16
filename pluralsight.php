@@ -20,8 +20,8 @@ if (php_sapi_name() != 'cli') {
 *    folder to put the download courses 
 **/
 
-$config = array('user' => '', 
-                'password' => '',
+$config = array('user' => '<YOUR_USER_NAME>', 
+                'password' => '<YOUR_PASSWORD>',
                 'download_folder' => 'Courses',
                 'download_file' => 'download.txt', 
                 'download_time' => 'full');
@@ -133,7 +133,6 @@ class PluralSight {
             printf("\tModule %s\n", $moduleTitle);
 
             $courseDescription .= $module->title . "\n";
-            #$courseDescription .= "    " . $module->description . "\n";
 
             foreach($clips as $clip) {
                 $clipTitle = $clip->title;
@@ -147,7 +146,7 @@ class PluralSight {
 
                 $duration = $clip->duration;
 
-                $duration = preg_replace("/^([\d]{1,2})\:([\d]{2})$/", "00:$1:$2", $duration);
+                $duration = preg_replace("/.*T([\d]{1,2})M([\d]{2})\..*/", "00:$1:$2", $duration);
                 sscanf($duration, "%d:%d:%d", $hours, $minutes, $seconds);
                 $duration = $hours * 3600 + $minutes * 60 + $seconds;
 
