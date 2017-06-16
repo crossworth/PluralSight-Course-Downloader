@@ -25,7 +25,6 @@ $config = array('user' => '',
                 'download_folder' => 'Courses',
                 'download_file' => 'download.txt', 
                 'download_time' => 'full');
-ini_set("default_socket_timeout", 60*20);
 class PluralSight {
     const BASE_URL = 'http://app.pluralsight.com';
     const INFO_URL = 'http://app.pluralsight.com/data/course/';
