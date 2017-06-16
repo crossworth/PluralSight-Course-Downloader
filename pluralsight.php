@@ -20,17 +20,17 @@ if (php_sapi_name() != 'cli') {
 *    folder to put the download courses 
 **/
 
-$config = array('user' => 'USER GOES HERE', 
-                'password' => 'PASSWORD GOES HERE',
+$config = array('user' => '', 
+                'password' => '',
                 'download_folder' => 'Courses',
                 'download_file' => 'download.txt', 
                 'download_time' => 'full');
-
+ini_set("default_socket_timeout", 60*20);
 class PluralSight {
     const BASE_URL = 'http://app.pluralsight.com';
     const INFO_URL = 'http://app.pluralsight.com/data/course/';
-    const CONTENT_DATA_URL = 'http://app.pluralsight.com/data/course/content/';
-    const CLIP_URL = 'http://app.pluralsight.com/training/player?';
+    const CONTENT_DATA_URL = 'http://app.pluralsight.com/learner/content/courses/';
+    const CLIP_URL = 'http://app.pluralsight.com';
     const MAX_GET_TRIES = 8;
 
     private $config;
@@ -120,10 +120,10 @@ class PluralSight {
         chdir($title);
 
         $courseContent = $this->GetCourseContent($courseID);
-
+	
         $content = array();
 
-        foreach ($courseContent as $module) {
+        foreach ($courseContent->modules as $module) {
 
             $clips = $module->clips;
             $moduleTitle = $module->title;
@@ -134,13 +134,13 @@ class PluralSight {
             printf("\tModule %s\n", $moduleTitle);
 
             $courseDescription .= $module->title . "\n";
-            $courseDescription .= "    " . $module->description . "\n";
+            #$courseDescription .= "    " . $module->description . "\n";
 
             foreach($clips as $clip) {
                 $clipTitle = $clip->title;
-                $playerParameters = $clip->playerParameters;
+                $playerParameters = $clip->playerUrl;
 
-                if (empty($clip->playerParameters)) {
+                if (empty($clip->playerUrl)) {
                     continue;
                 }
 
@@ -152,7 +152,7 @@ class PluralSight {
                 sscanf($duration, "%d:%d:%d", $hours, $minutes, $seconds);
                 $duration = $hours * 3600 + $minutes * 60 + $seconds;
 
-                $url = self::CLIP_URL . $clip->playerParameters;
+                $url = self::CLIP_URL . $clip->playerUrl;
 
                 $timeStart = time();
 
@@ -205,8 +205,7 @@ class PluralSight {
     }
 
     private function DownloadURL($url, $clipTitle) {
-        $url_ = str_ireplace("http://app.pluralsight.com/training/player?", "", $url);
-
+        $url_ = str_ireplace("http://app.pluralsight.com/player?", "", $url);
         $query = array();
         parse_str($url_, $query);
 
@@ -256,7 +255,7 @@ class PluralSight {
             $result = $this->session->post('/training/Player/ViewClip');
 
             $downloadLink = $result->body;
-
+	#	printf("%s",$downloadLink);
             if ($i + 1 == self::MAX_GET_TRIES && downloadLink == "Bad Request") {
                 die("Error 403: Your account probably was blocked.\n");
             } elseif ($downloadLink == "Bad Request") {
@@ -289,10 +288,10 @@ class PluralSight {
 
         $clipTitle = $this->ConvertNameForWindows($clipTitle);
 
-        if (!file_exists($clipTitle . "." . $formats[$currentFormat]) && filesize($clipTitle . "." . $formats[$currentFormat]) > 0) {
+        #if (!file_exists($clipTitle . "." . $formats[$currentFormat]) && filesize($clipTitle . "." . $formats[$currentFormat]) > 0) {
+        if (!file_exists($clipTitle . "." . $formats[$currentFormat])) {
             echo "\tDownloading file: " . $clipTitle . " \n";
             $data = fopen($downloadLink, 'r');
-
             if ($data) {
                 file_put_contents($clipTitle . "." . $formats[$currentFormat], $data);
             } else {
@@ -308,6 +307,7 @@ class PluralSight {
 
     private function GetCourseContent($courseID) {
         $result = $this->session->get(self::CONTENT_DATA_URL . $courseID);
+	#var_dump($result->body);
         $result = json_decode($result->body);
         return $result;
     }
