@@ -145,10 +145,10 @@ class PluralSight {
                 $courseDescription .= "    " . $clip->title . " " . $clip->duration . "\n";
 
                 $duration = $clip->duration;
-
-                $duration = preg_replace("/.*T([\d]{1,2})M([\d]{2})\..*/", "00:$1:$2", $duration);
+                $duration = preg_replace("/.*([\d]{1,2})M([\d]{2})(\.|).*?S.*/", "00:$1:$2", $duration);
                 sscanf($duration, "%d:%d:%d", $hours, $minutes, $seconds);
-                $duration = $hours * 3600 + $minutes * 60 + $seconds;
+		$duration = $hours * 3600 + $minutes * 60 + $seconds;
+		
 
                 $url = self::CLIP_URL . $clip->playerUrl;
 
@@ -253,7 +253,7 @@ class PluralSight {
             $result = $this->session->post('/training/Player/ViewClip');
 
             $downloadLink = $result->body;
-            if ($i + 1 == self::MAX_GET_TRIES && downloadLink == "Bad Request") {
+            if ($i + 1 == self::MAX_GET_TRIES && $downloadLink == "Bad Request") {
                 die("Error 403: Your account probably was blocked.\n");
             } elseif ($downloadLink == "Bad Request") {
                 printf("\tError, could not get the download link, trying to get another resolution/format in 5 seconds.\n");
@@ -324,6 +324,8 @@ class PluralSight {
             $name = str_ireplace("?", " ", $name);
             $name = str_ireplace("*", " ", $name);
         }
+	else
+            $name = str_ireplace("/", "-", $name);
 
         return $name;
     }
