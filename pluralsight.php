@@ -145,9 +145,10 @@ class PluralSight {
                 $courseDescription .= "    " . $clip->title . " " . $clip->duration . "\n";
 
                 $duration = $clip->duration;
-                $duration = preg_replace("/.*([\d]{1,2})M([\d]{2})(\.|).*?S.*/", "00:$1:$2", $duration);
+                $duration = preg_replace("/.*?(([\d]{0,2})M|)([\d]{1,2})(\.|).*?S.*/", "00:$2:$3", $duration);
+            	$duration = str_ireplace("::", ":00:", $duration);
                 sscanf($duration, "%d:%d:%d", $hours, $minutes, $seconds);
-		$duration = $hours * 3600 + $minutes * 60 + $seconds;
+		        $duration = $hours * 3600 + $minutes * 60 + $seconds;
 		
 
                 $url = self::CLIP_URL . $clip->playerUrl;
