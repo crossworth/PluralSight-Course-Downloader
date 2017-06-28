@@ -20,17 +20,16 @@ if (php_sapi_name() != 'cli') {
 *    folder to put the download courses 
 **/
 
-$config = array('user' => 'USER GOES HERE', 
-                'password' => 'PASSWORD GOES HERE',
+$config = array('user' => '<YOUR_USER_NAME>', 
+                'password' => '<YOUR_PASSWORD>',
                 'download_folder' => 'Courses',
                 'download_file' => 'download.txt', 
                 'download_time' => 'full');
-
 class PluralSight {
     const BASE_URL = 'http://app.pluralsight.com';
     const INFO_URL = 'http://app.pluralsight.com/data/course/';
-    const CONTENT_DATA_URL = 'http://app.pluralsight.com/data/course/content/';
-    const CLIP_URL = 'http://app.pluralsight.com/training/player?';
+    const CONTENT_DATA_URL = 'http://app.pluralsight.com/learner/content/courses/';
+    const CLIP_URL = 'http://app.pluralsight.com';
     const MAX_GET_TRIES = 8;
 
     private $config;
@@ -120,10 +119,10 @@ class PluralSight {
         chdir($title);
 
         $courseContent = $this->GetCourseContent($courseID);
-
+	
         $content = array();
 
-        foreach ($courseContent as $module) {
+        foreach ($courseContent->modules as $module) {
 
             $clips = $module->clips;
             $moduleTitle = $module->title;
@@ -134,25 +133,25 @@ class PluralSight {
             printf("\tModule %s\n", $moduleTitle);
 
             $courseDescription .= $module->title . "\n";
-            $courseDescription .= "    " . $module->description . "\n";
 
             foreach($clips as $clip) {
                 $clipTitle = $clip->title;
-                $playerParameters = $clip->playerParameters;
+                $playerParameters = $clip->playerUrl;
 
-                if (empty($clip->playerParameters)) {
+                if (empty($clip->playerUrl)) {
                     continue;
                 }
 
                 $courseDescription .= "    " . $clip->title . " " . $clip->duration . "\n";
 
                 $duration = $clip->duration;
-
-                $duration = preg_replace("/^([\d]{1,2})\:([\d]{2})$/", "00:$1:$2", $duration);
+                $duration = preg_replace("/.*?(([\d]{0,2})M|)([\d]{1,2})(\.|).*?S.*/", "00:$2:$3", $duration);
+            	$duration = str_ireplace("::", ":00:", $duration);
                 sscanf($duration, "%d:%d:%d", $hours, $minutes, $seconds);
-                $duration = $hours * 3600 + $minutes * 60 + $seconds;
+		        $duration = $hours * 3600 + $minutes * 60 + $seconds;
+		
 
-                $url = self::CLIP_URL . $clip->playerParameters;
+                $url = self::CLIP_URL . $clip->playerUrl;
 
                 $timeStart = time();
 
@@ -205,8 +204,7 @@ class PluralSight {
     }
 
     private function DownloadURL($url, $clipTitle) {
-        $url_ = str_ireplace("http://app.pluralsight.com/training/player?", "", $url);
-
+        $url_ = str_ireplace("http://app.pluralsight.com/player?", "", $url);
         $query = array();
         parse_str($url_, $query);
 
@@ -256,8 +254,7 @@ class PluralSight {
             $result = $this->session->post('/training/Player/ViewClip');
 
             $downloadLink = $result->body;
-
-            if ($i + 1 == self::MAX_GET_TRIES && downloadLink == "Bad Request") {
+            if ($i + 1 == self::MAX_GET_TRIES && $downloadLink == "Bad Request") {
                 die("Error 403: Your account probably was blocked.\n");
             } elseif ($downloadLink == "Bad Request") {
                 printf("\tError, could not get the download link, trying to get another resolution/format in 5 seconds.\n");
@@ -289,10 +286,9 @@ class PluralSight {
 
         $clipTitle = $this->ConvertNameForWindows($clipTitle);
 
-        if (!file_exists($clipTitle . "." . $formats[$currentFormat]) && filesize($clipTitle . "." . $formats[$currentFormat]) > 0) {
+        if (!file_exists($clipTitle . "." . $formats[$currentFormat])) {
             echo "\tDownloading file: " . $clipTitle . " \n";
             $data = fopen($downloadLink, 'r');
-
             if ($data) {
                 file_put_contents($clipTitle . "." . $formats[$currentFormat], $data);
             } else {
@@ -329,6 +325,8 @@ class PluralSight {
             $name = str_ireplace("?", " ", $name);
             $name = str_ireplace("*", " ", $name);
         }
+	else
+            $name = str_ireplace("/", "-", $name);
 
         return $name;
     }
